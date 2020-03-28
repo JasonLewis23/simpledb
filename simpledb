@@ -1,11 +1,20 @@
 #!/bin/bash
 
+# list
+# -q, queit mode
+
+DPATH="/var/simpledb"
+CPATH="config"
+SETTINGS="settings.conf"
+
 usage() {
 	echo "$0:"
 	echo "    -h - display help screen"
-	echo "    -c <type> - create a new database for with one of the following types:"
+	echo "    -c <type> <name> - create a new database, name, with one of the following types:"
 	echo "                    -kv - key value pair database (dictionary)"
 	echo "                    -rt - raw text database (log file)"
+	echo "    -s <name> - set the database name to the current database"
+	echo "    -d <name> - delete database name"
 	exit 0
 }
 
@@ -13,22 +22,39 @@ create_db() {
 	type=$1
 	dname=$2
 	echo "creating database $dname using type $type"
-	mkdir -p $DEFAULT_PATH
-	touch $DEFAULT_PATH/$dname
-	echo "name: $dname" >> $DEFAULT_PATH/$dname
-	echo "type: $type" >> $DEFAULT_PATH/$dname
-	echo "" >> $DEFAULT_PATH/$dname
+	mkdir -p $DPATH
+	touch $DPATH/$dname
+	echo "name: $dname" >> $DPATH/$dname
+	echo "type: $type" >> $DPATH/$dname
+	echo "" >> $DPATH/$dname
 	echo "database created"
 }
 
 delete_db() {
 	dname=$1
 	echo "deleting database $dname"
-	rm -f $DEFAULT_PATH/$dname
+	curdb=$(head -1 $DPATH/$dname | cut -d ' ' -f2)
+	if [ "$curdb" == "$dname" ]; then
+		_delete_settings
+	fi
+	rm -f $DPATH/$dname
 	echo "database deleted"
 }
 
-DEFAULT_PATH="/var/simpledb"
+_delete_settings() {
+	if [ -f $DPATH/$CPATH/$SETTINGS ]; then
+		rm -f $DPATH/$CPATH/$SETTINGS
+	fi
+}
+
+set_db() {
+	dname=$1
+	if [ ! -d $DPATH/$CPATH ]; then
+		mkdir -p $DPATH/$CPATH
+	fi
+	_delete_settings
+	head -2 $DPATH/$dname > $DPATH/$CPATH/$SETTINGS
+}
 
 while (($#)) 
 do
@@ -49,13 +75,13 @@ do
 				echo "name not provided for -c arg"
 				exit 2
 			fi
-			if [ -f $DEFAULT_PATH/$dname ]; then
-				echo "database name already exists"
+			if [ -f $DPATH/$dname ]; then
+				echo "database already exists"
 				exit 3
 			fi
 			if [ "$type" != "kv" ] && \
 			   [ "$type" != "rt" ]; then 
-				echo "type argument does not match a known type"
+				echo "given type does not match a known type"
 				exit 4
 			fi
 			create_db $type $dname
@@ -63,11 +89,20 @@ do
 		-d)
 			shift
 			dname=$1
-			if [ ! -f $DEFAULT_PATH/$dname ]; then
-				echo "database name does not exist"
+			if [ ! -f $DPATH/$dname ]; then
+				echo "database does not exist"
 				exit 5
 			fi
 			delete_db $dname
+			;;
+		-s)
+			shift
+			dname=$1
+			if [ ! -f $DPATH/$dname ]; then
+				echo "database does not exist"
+				exit 6
+			fi
+			set_db $dname
 			;;
 		*)
 			echo "Unknown arg"
