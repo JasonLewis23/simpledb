@@ -5,7 +5,7 @@
 
 DPATH="/var/simpledb"
 CPATH="config"
-SETTINGS="settings.conf"
+CURRENT="current.conf"
 
 usage() {
 	echo "$0:"
@@ -42,8 +42,8 @@ delete_db() {
 }
 
 _delete_settings() {
-	if [ -f $DPATH/$CPATH/$SETTINGS ]; then
-		rm -f $DPATH/$CPATH/$SETTINGS
+	if [ -f $DPATH/$CPATH/$CURRENT ]; then
+		rm -f $DPATH/$CPATH/$CURRENT
 	fi
 }
 
@@ -53,7 +53,7 @@ set_db() {
 		mkdir -p $DPATH/$CPATH
 	fi
 	_delete_settings
-	head -2 $DPATH/$dname > $DPATH/$CPATH/$SETTINGS
+	head -2 $DPATH/$dname > $DPATH/$CPATH/$CURRENT
 }
 
 while (($#)) 
