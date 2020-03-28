@@ -1,0 +1,78 @@
+#!/bin/bash
+
+usage() {
+	echo "$0:"
+	echo "    -h - display help screen"
+	echo "    -c <type> - create a new database for with one of the following types:"
+	echo "                    -kv - key value pair database (dictionary)"
+	echo "                    -rt - raw text database (log file)"
+	exit 0
+}
+
+create_db() {
+	type=$1
+	dname=$2
+	echo "creating database $dname using type $type"
+	mkdir -p $DEFAULT_PATH
+	touch $DEFAULT_PATH/$dname
+	echo "name: $dname" >> $DEFAULT_PATH/$dname
+	echo "type: $type" >> $DEFAULT_PATH/$dname
+	echo "" >> $DEFAULT_PATH/$dname
+	echo "database created"
+}
+
+delete_db() {
+	dname=$1
+	echo "deleting database $dname"
+	rm -f $DEFAULT_PATH/$dname
+	echo "database deleted"
+}
+
+DEFAULT_PATH="/var/simpledb"
+
+while (($#)) 
+do
+	case $1 in
+		"-h")
+			usage
+			;;
+		"-c")
+                        shift
+			type=$1
+			shift
+			dname=$1
+			if [ -z $type ]; then
+				echo "type not provided for -c arg"
+				exit 1
+			fi
+			if [ -z $dname ]; then
+				echo "name not provided for -c arg"
+				exit 2
+			fi
+			if [ -f $DEFAULT_PATH/$dname ]; then
+				echo "database name already exists"
+				exit 3
+			fi
+			if [ "$type" != "kv" ] && \
+			   [ "$type" != "rt" ]; then 
+				echo "type argument does not match a known type"
+				exit 4
+			fi
+			create_db $type $dname
+			;;
+		-d)
+			shift
+			dname=$1
+			if [ ! -f $DEFAULT_PATH/$dname ]; then
+				echo "database name does not exist"
+				exit 5
+			fi
+			delete_db $dname
+			;;
+		*)
+			echo "Unknown arg"
+			;;
+	esac
+	shift
+done
+
