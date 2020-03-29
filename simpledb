@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # todo
-# -p, print raw text representation of database
+# -p, add type to -l with column
 # -a, add entry to database
+# -g, get entry from the database if supported (dict)
 # -r <string>, remove entry if type supports remove (below):
 #	dict, remove by key
 
@@ -13,12 +14,13 @@ CURRENT="current.conf"
 usage() {
 	echo "$0:"
 	echo "    -h - display help screen"
-	echo "    -c <type> <name> - create a new database, name, with one of the following types:"
-	echo "                    -dict - key value pair database"
-	echo "                    -log - raw text as written"
-	echo "    -s <name> - set the database name to the current database"
-	echo "    -d <name> - delete database name"
 	echo "    -q - suppress output"
+	echo "    -c <type> <dname> - create a new database, dname, with one of the following types, type:"
+	echo "                    dict - key value pair database"
+	echo "                    log - raw text as written"
+	echo "    -s <dname> - set the database dname to the current database"
+	echo "    -d - delete current database"
+	echo "    -p - print raw text of current database"
 	exit 0
 }
 
@@ -51,6 +53,14 @@ _delete_current() {
 	fi
 }
 
+_get_current() {
+	local dname=""
+	if [ -f $DPATH/$CPATH/$CURRENT ]; then
+		local dname=$(head -3 $DPATH/$CPATH/$CURRENT | grep "Name:" | cut -d ' ' -f2)
+	fi
+	echo "$dname"
+}
+
 set_db() {
 	dname=$1
 	if [ ! -d $DPATH/$CPATH ]; then
@@ -74,6 +84,23 @@ list_dbs() {
 		name=$(basename $file)
 		echo "$name"
 	done
+}
+
+print_db() {
+	echo "$1"
+	dname=$1
+	let x=0
+	while :
+	do
+		if ! read line
+		then
+			break
+		fi
+		if [ $x -gt 2 ]; then
+			echo "$line"
+		fi
+		let "x = $x + 1"
+	done < $DPATH/$dname
 }
 
 while (($#)) 
@@ -107,8 +134,7 @@ do
 			create_db $type $dname
 			;;
 		"-d")
-			shift
-			dname=$1
+			dname=$(_get_current)
 			if [ ! -f $DPATH/$dname ]; then
 				echo "database does not exist"
 				exit 5
@@ -129,6 +155,14 @@ do
 			;;
 		"-l")
 			list_dbs
+			;;
+		"-p")
+			dname=$(_get_current)
+			if [ ! -f $DPATH/$dname ]; then
+				echo "database does not exist"
+				exit 7
+			fi
+			print_db $dname
 			;;
 		*)
 			echo "unknown arg: $1"
