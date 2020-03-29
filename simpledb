@@ -62,6 +62,17 @@ suppress_output() {
 	exec 2>&1
 }
 
+list_dbs() {
+	for file in $DPATH/*
+	do
+		if [ ! -f $file ]; then
+			continue
+		fi
+		name=$(basename $file)
+		echo "$name"
+	done
+}
+
 while (($#)) 
 do
 	case $1 in
@@ -112,6 +123,9 @@ do
 			;;
 		"-q")
 			suppress_output
+			;;
+		"-l")
+			list_dbs
 			;;
 		*)
 			echo "unknown arg: $1"
