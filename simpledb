@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# list
-# -q, queit mode
+# todo
+# -p, print raw text representation of database
+# -a, add entry to database
+# -r <string>, remove entry if type supports remove (below):
+#	dict, remove by key
 
 DPATH="/var/simpledb"
 CPATH="config"
