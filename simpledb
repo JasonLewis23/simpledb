@@ -1,11 +1,16 @@
 #!/bin/bash
 
 # todo
-# -p, add type to -l with column
 # -a, add entry to database
 # -g, get entry from the database if supported (dict)
 # -r <string>, remove entry if type supports remove (below):
 #	dict, remove by key
+# -cp <loc>, copy current database file to location loc
+# make database creation check for database name in archive
+# -ar, archive current database and remove as current
+# -uar <dname>, un-archive database dname
+# -la, list archive database names
+# -ll, list database names and types
 
 DPATH="/var/simpledb"
 CPATH="config"
