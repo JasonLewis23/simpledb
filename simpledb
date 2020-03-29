@@ -11,10 +11,11 @@ usage() {
 	echo "$0:"
 	echo "    -h - display help screen"
 	echo "    -c <type> <name> - create a new database, name, with one of the following types:"
-	echo "                    -kv - key value pair database (dictionary)"
-	echo "                    -rt - raw text database (log file)"
+	echo "                    -dict - key value pair database"
+	echo "                    -log - raw text as written"
 	echo "    -s <name> - set the database name to the current database"
 	echo "    -d <name> - delete database name"
+	echo "    -q - suppress output"
 	exit 0
 }
 
@@ -35,13 +36,13 @@ delete_db() {
 	echo "deleting database $dname"
 	curdb=$(head -1 $DPATH/$dname | cut -d ' ' -f2)
 	if [ "$curdb" == "$dname" ]; then
-		_delete_settings
+		_delete_current
 	fi
 	rm -f $DPATH/$dname
 	echo "database deleted"
 }
 
-_delete_settings() {
+_delete_current() {
 	if [ -f $DPATH/$CPATH/$CURRENT ]; then
 		rm -f $DPATH/$CPATH/$CURRENT
 	fi
@@ -52,8 +53,13 @@ set_db() {
 	if [ ! -d $DPATH/$CPATH ]; then
 		mkdir -p $DPATH/$CPATH
 	fi
-	_delete_settings
+	_delete_current
 	head -2 $DPATH/$dname > $DPATH/$CPATH/$CURRENT
+}
+
+suppress_output() {
+	exec 1>/dev/null
+	exec 2>&1
 }
 
 while (($#)) 
@@ -79,14 +85,14 @@ do
 				echo "database already exists"
 				exit 3
 			fi
-			if [ "$type" != "kv" ] && \
-			   [ "$type" != "rt" ]; then 
+			if [ "$type" != "dict" ] && \
+			   [ "$type" != "log" ]; then
 				echo "given type does not match a known type"
 				exit 4
 			fi
 			create_db $type $dname
 			;;
-		-d)
+		"-d")
 			shift
 			dname=$1
 			if [ ! -f $DPATH/$dname ]; then
@@ -95,7 +101,7 @@ do
 			fi
 			delete_db $dname
 			;;
-		-s)
+		"-s")
 			shift
 			dname=$1
 			if [ ! -f $DPATH/$dname ]; then
@@ -104,8 +110,11 @@ do
 			fi
 			set_db $dname
 			;;
+		"-q")
+			suppress_output
+			;;
 		*)
-			echo "Unknown arg"
+			echo "unknown arg: $1"
 			;;
 	esac
 	shift
