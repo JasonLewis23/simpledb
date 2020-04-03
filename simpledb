@@ -121,7 +121,6 @@ print_db() {
 _add_entry_to_log() {
 	dname=$1
 	line=$2
-	echo "$DPATH/$dname"
 	echo "$line" >> $DPATH/$dname
 }
 
@@ -137,10 +136,10 @@ _add_entry_from_stdin() {
 		type=$(_get_current_type)
 		case $type in
 			"log")
-				_add_entry_to_log $dname $line
+				_add_entry_to_log $dname "$line"
 				;;
 			"dict")
-				_add_entry_to_dict $dname $line
+				_add_entry_to_dict $dname "$line"
 				;;
 			*)
 				;;
@@ -149,13 +148,29 @@ _add_entry_from_stdin() {
 	done < /dev/stdin
 }
 
+_add_entry_from_string() {
+	dname=$1
+	str=$2
+	type=$(_get_current_type)
+	case $type in
+		"log")
+			_add_entry_to_log $dname "$str"
+			;;
+		"dict")
+			_add_entry_to_dict $dname "$str"
+			;;
+		*)
+			;;
+	esac
+}
+
 add_entry() {
 	dname=$1
 	str=$2
 	if [ "$str" == "_STDIN" ]; then
 		_add_entry_from_stdin $dname
 	else
-		_add_entry_from_string $dname $str
+		_add_entry_from_string $dname "$str"
 	fi
 }
 
@@ -232,7 +247,7 @@ do
 			dname=$(_get_current_name)
 			shift
 			entry=$1
-			if [ -z $entry ]; then
+			if [ -z "$entry" ]; then
 				echo "could not add empty entry"
 				exit 9
 			fi
@@ -240,7 +255,7 @@ do
 				echo "database does not exist"
 				exit 10
 			fi
-			add_entry $dname $entry
+			add_entry $dname "$entry"
 			;;
 		*)
 			echo "unknown arg: $1"
