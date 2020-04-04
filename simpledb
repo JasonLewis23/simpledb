@@ -15,7 +15,7 @@
 
 DPATH="/var/simpledb"
 CPATH="config"
-CURRENT="current.conf"
+CURRENT="$DPATH/current"
 
 usage() {
 	echo "$0:"
@@ -37,53 +37,51 @@ create_db() {
 	dname=$2
 	echo "creating database $dname using type $type"
 	mkdir -p $DPATH
-	touch $DPATH/$dname
-	echo "name: $dname" >> $DPATH/$dname
-	echo "type: $type" >> $DPATH/$dname
-	echo "" >> $DPATH/$dname
+	touch "$DPATH/$dname.$type"
 	echo "database created"
 }
 
 delete_db() {
 	dname=$1
 	echo "deleting database $dname"
-	curdb=$(head -1 $DPATH/$dname | cut -d ' ' -f2)
-	if [ "$curdb" == "$dname" ]; then
+	if [ -f $CURRENT ]; then
 		_delete_current
 	fi
-	rm -f $DPATH/$dname
 	echo "database deleted"
 }
 
 _delete_current() {
-	if [ -f $DPATH/$CPATH/$CURRENT ]; then
-		rm -f $DPATH/$CPATH/$CURRENT
+	if [ -f $CURRENT ]; then
+		path=$(readlink -f $CURRENT)
+		rm -f $path
+		unlink $CURRENT
 	fi
 }
 
 _get_current_name() {
 	local dname=""
-	if [ -f $DPATH/$CPATH/$CURRENT ]; then
-		local dname=$(head -3 $DPATH/$CPATH/$CURRENT | grep "name:" | cut -d ' ' -f2)
+	if [ -f $CURRENT ]; then
+		local dname=$(readlink -f $CURRENT | basename | cut -d '.' -f1)
 	fi
 	echo "$dname"
 }
 
 _get_current_type() {
 	local type=""
-	if [ -f $DPATH/$CPATH/$CURRENT ]; then
-		local type=$(head -3 $DPATH/$CPATH/$CURRENT | grep "type:" | cut -d ' ' -f2)
+	if [ -f $CURRENT ]; then
+		path=$(readlink -f $CURRENT)
+		name=$(basename $path)
+		local type=$(echo "$name" | cut -d '.' -f2)
 	fi
 	echo "$type"
 }
 
 set_db() {
 	dname=$1
-	if [ ! -d $DPATH/$CPATH ]; then
-		mkdir -p $DPATH/$CPATH
+	if [ -f "$CURRENT" ]; then
+		unlink "$CURRENT"
 	fi
-	_delete_current
-	head -2 $DPATH/$dname > $DPATH/$CPATH/$CURRENT
+	ln -s "$DPATH/$dname" "$CURRENT"
 }
 
 suppress_output() {
@@ -97,49 +95,44 @@ list_dbs() {
 		if [ ! -f $file ]; then
 			continue
 		fi
+		if [ "$file" == "$CURRENT" ]; then
+			continue
+		fi
 		name=$(basename $file)
 		echo "$name"
 	done
 }
 
 print_db() {
-	dname=$1
-	let x=0
 	while :
 	do
 		if ! read line
 		then
 			break
 		fi
-		if [ $x -gt 2 ]; then
-			echo "$line"
-		fi
-		let "x = $x + 1"
-	done < $DPATH/$dname
+		echo "$line"
+	done < $CURRENT
 }
 
 _add_entry_to_log() {
-	dname=$1
-	line=$2
-	echo "$line" >> $DPATH/$dname
+	line=$1
+	echo "$line" >> $CURRENT
 }
 
 _add_entry_to_dict() {
-	dname=$1
-	line=$2
+	line=$1
 }
 
 _add_entry_from_stdin() {
-	dname=$1
 	while read line
 	do
 		type=$(_get_current_type)
 		case $type in
 			"log")
-				_add_entry_to_log $dname "$line"
+				_add_entry_to_log "$line"
 				;;
 			"dict")
-				_add_entry_to_dict $dname "$line"
+				_add_entry_to_dict "$line"
 				;;
 			*)
 				;;
@@ -149,15 +142,14 @@ _add_entry_from_stdin() {
 }
 
 _add_entry_from_string() {
-	dname=$1
-	str=$2
+	str=$1
 	type=$(_get_current_type)
 	case $type in
 		"log")
-			_add_entry_to_log $dname "$str"
+			_add_entry_to_log "$str"
 			;;
 		"dict")
-			_add_entry_to_dict $dname "$str"
+			_add_entry_to_dict "$str"
 			;;
 		*)
 			;;
@@ -165,12 +157,11 @@ _add_entry_from_string() {
 }
 
 add_entry() {
-	dname=$1
-	str=$2
+	str=$1
 	if [ "$str" == "_STDIN" ]; then
-		_add_entry_from_stdin $dname
+		_add_entry_from_stdin
 	else
-		_add_entry_from_string $dname "$str"
+		_add_entry_from_string "$str"
 	fi
 }
 
@@ -193,7 +184,7 @@ do
 				echo "name not provided for -c arg"
 				exit 2
 			fi
-			if [ -f $DPATH/$dname ]; then
+			if [ -f "$DPATH/$dname.$type" ]; then
 				echo "database already exists"
 				exit 3
 			fi
@@ -205,17 +196,16 @@ do
 			create_db $type $dname
 			;;
 		"-d")
-			dname=$(_get_current_name)
-			if [ ! -f $DPATH/$dname ]; then
+			if [ ! -f $CURRENT ]; then
 				echo "database does not exist"
 				exit 5
 			fi
-			delete_db $dname
+			delete_db
 			;;
 		"-s")
 			shift
 			dname=$1
-			if [ ! -f $DPATH/$dname ]; then
+			if [ ! -f "$DPATH/$dname" ]; then
 				echo "database does not exist"
 				exit 6
 			fi
@@ -228,34 +218,31 @@ do
 			list_dbs
 			;;
 		"-p")
-			dname=$(_get_current_name)
-			if [ ! -f $DPATH/$dname ]; then
+			if [ ! -f "$CURRENT" ]; then
 				echo "database does not exist"
 				exit 7
 			fi
-			print_db $dname
+			print_db
 			;;
 		"-a")
-			dname=$(_get_current_name)
-			if [ ! -f $DPATH/$dname ]; then
+			if [ ! -f $CURRENT ]; then
 				echo "database does not exist"
 				exit 8
 			fi
 			add_entry $dname "_STDIN"
 			;;
 		"-as")
-			dname=$(_get_current_name)
 			shift
 			entry=$1
 			if [ -z "$entry" ]; then
 				echo "could not add empty entry"
 				exit 9
 			fi
-			if [ ! -f $DPATH/$dname ]; then
+			if [ ! -f $CURRENT ]; then
 				echo "database does not exist"
 				exit 10
 			fi
-			add_entry $dname "$entry"
+			add_entry "$entry"
 			;;
 		*)
 			echo "unknown arg: $1"
