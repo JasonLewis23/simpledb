@@ -1,21 +1,18 @@
 #!/bin/bash
 
-# todo
-# add type as extension of database file <dname.type>
-# change current to a soft link
-# make -l list types
+# TODO
+#
+# database ops:
 # -g, get entry from the database if supported (dict)
 # -r <string>, remove entry if type supports remove (below):
 #	dict, remove by key
-# -cp <loc>, copy current database file to location loc
-# make database creation check for database name in archive
-# -ar, archive current database and remove as current
-# -uar <dname>, un-archive database dname
-# -la, list archive database names and types
+# misc:
+# update error logging
 
 DPATH="/var/simpledb"
-CPATH="config"
+CPATH="$DPATH/config"
 CURRENT="$DPATH/current"
+ARCHIVE="$DPATH/archive"
 
 usage() {
 	echo "$0:"
@@ -29,6 +26,10 @@ usage() {
 	echo "    -p - print raw text of current database"
 	echo "    -a - add entry to current database from stdin"
 	echo "    -as - add entry to current database from passed in string"
+	echo "    -cp <dir> - copy database file to directory"
+	echo "    -ar - archive current database"
+	echo "    -uar <dname> - unarchive database dname"
+	echo "    -la - list archived databases"
 	exit 0
 }
 
@@ -103,6 +104,17 @@ list_dbs() {
 	done
 }
 
+alist_dbs() {
+	for file in $ARCHIVE/*
+	do
+		if [ ! -f $file ]; then
+			continue
+		fi
+		name=$(basename $file)
+		echo "$name"
+	done
+}
+
 print_db() {
 	while :
 	do
@@ -163,6 +175,27 @@ add_entry() {
 	else
 		_add_entry_from_string "$str"
 	fi
+}
+
+copy_db() {
+	dirpath=$1
+	dname=$(readlink -f $CURRENT)
+	cp $dname $dirpath
+}
+
+archive_db() {
+	dpath=$(readlink -f $CURRENT)
+	dname=$(basename $dpath)
+	mkdir -p $ARCHIVE
+	mv $dpath $ARCHIVE/$dname
+	if [ -f $CURRENT ]; then
+		unlink $CURRENT
+	fi
+}
+
+uarchive_db() {
+	dname=$1
+	mv $ARCHIVE/$dname $DPATH
 }
 
 while (($#)) 
@@ -243,6 +276,48 @@ do
 				exit 10
 			fi
 			add_entry "$entry"
+			;;
+		"-cp")
+			shift
+			dirpath=$1
+			if [ ! -d "$dirpath" ]; then
+				echo "copy location does not exist"
+				exit 11
+			fi
+			if [ ! -f $CURRENT ]; then
+				echo "database does not exist"
+				exit 12
+			fi
+			copy_db $dirpath
+			;;
+		"-ar")
+			if [ ! -f $CURRENT ]; then
+				echo "database does not exist"
+				exit 13
+			fi
+			dpath=$(readlink -f $CURRENT)
+			dname=$(basename $dpath)
+			if [ -f "$ARCHIVE/$dname" ]; then
+				echo "database already exists in the archive"
+				exit 14
+			fi
+			archive_db
+			;;
+		"-uar")
+			shift
+			dname=$1
+			if [ -f "$DPATH/$dname" ]; then
+				echo "database already exists"
+				exit 15
+			fi
+			if [ ! -f "$ARCHIVE/$dname" ]; then
+				echo "database does not exist in the archive"
+				exit 16
+			fi
+			uarchive_db $dname
+			;;
+		"-la")
+			alist_dbs
 			;;
 		*)
 			echo "unknown arg: $1"
