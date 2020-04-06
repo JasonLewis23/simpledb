@@ -3,10 +3,10 @@
 # TODO
 #
 # database ops:
-# -g <type>, get entry from the database if supported (dict)
 # -r <string>, remove entry if type supports remove (below):
 #	dict, remove by key
-# finish add for dict database type
+# -gc, get current database name
+#
 # misc:
 # update error logging
 # readme
