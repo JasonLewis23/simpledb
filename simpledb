@@ -3,16 +3,19 @@
 # TODO
 #
 # database ops:
-# -g, get entry from the database if supported (dict)
+# -g <type>, get entry from the database if supported (dict)
 # -r <string>, remove entry if type supports remove (below):
 #	dict, remove by key
+# finish add for dict database type
 # misc:
 # update error logging
+# readme
 
 DPATH="/var/simpledb"
 CPATH="$DPATH/config"
 CURRENT="$DPATH/current"
 ARCHIVE="$DPATH/archive"
+DTOK="<<DTOK>>"
 
 usage() {
 	echo "$0:"
@@ -30,6 +33,8 @@ usage() {
 	echo "    -ar - archive current database"
 	echo "    -uar <dname> - unarchive database dname"
 	echo "    -la - list archived databases"
+	echo "    -g <type> <str> - get an entry from the current database (if the database supports the type of get)"
+	echo "    -d <type> <str> - delete an entry from the current database (if the database supports the type of delete)"
 	exit 0
 }
 
@@ -62,7 +67,9 @@ _delete_current() {
 _get_current_name() {
 	local dname=""
 	if [ -f $CURRENT ]; then
-		local dname=$(readlink -f $CURRENT | basename | cut -d '.' -f1)
+		path=$(readlink -f $CURRENT)
+		name=$(basename $path)
+		local dname=$(echo "$name" | cut -d '.' -f1)
 	fi
 	echo "$dname"
 }
@@ -133,6 +140,15 @@ _add_entry_to_log() {
 
 _add_entry_to_dict() {
 	line=$1
+	key=$(awk '{split($0, a, "<<DTOK>>"); print a[1];}' <<< "$line")
+	val=$(awk '{split($0, a, "<<DTOK>>"); print a[2];}' <<< "$line")
+	if [ -z "$key" ]; then
+		return
+	fi
+	if [ -z "$val" ]; then
+		return
+	fi
+	echo "$line" >> $CURRENT
 }
 
 _add_entry_from_stdin() {
@@ -197,6 +213,61 @@ uarchive_db() {
 	dname=$1
 	mv $ARCHIVE/$dname $DPATH
 }
+
+_get_key() {
+	line=$1
+	awk '{split($0, a, "<<DTOK>>"); print a[1];}' <<< "$line"
+}
+
+_get_val() {
+	line=$1
+	awk '{split($0, a, "<<DTOK>>"); print a[2];}' <<< "$line"
+}
+
+_get_dict_by_key() {
+	str=$1
+	line=$2
+	key=$(_get_key "$line")
+	if [ "$key" == "$str" ]; then
+		val=$(_get_val "$line")
+		echo "$val"
+	fi
+}
+
+_get_dict_by_rkey() {
+	str=$1
+	line=$2
+	key=$(_get_key $line)
+	if echo "$key" | grep -q $str
+	then
+		val=$(_get_val "$line")
+		echo "$val"
+	fi
+}
+
+get_dict() {
+	type=$1
+	str=$2
+	while :
+	do
+		if ! read line
+		then
+			break
+		fi
+		case $type in
+			"key")
+				_get_dict_by_key "$str" "$line"
+				;;
+			"rkey")
+				_get_dict_by_rkey "$str" "$line"
+				;;
+		esac
+	done < $CURRENT
+}
+
+#
+## Main
+#
 
 while (($#)) 
 do
@@ -318,6 +389,33 @@ do
 			;;
 		"-la")
 			alist_dbs
+			;;
+		"-g")
+			shift
+			type=$1
+			shift
+			str=$1
+			if [ -z $type ]; then
+				echo "type not given for get"
+				exit 17
+			fi
+			if [ -z $str ]; then
+				echo "string not given for get"
+				exit 18
+			fi
+			dname=$(_get_current_name)
+			ctype=$(_get_current_type)
+			case $ctype in
+				"log")
+					echo "log does not support get"
+					exit 19
+					;;
+				"dict")
+					get_dict $type "$str"
+					;;
+				*)
+					;;
+			esac
 			;;
 		*)
 			echo "unknown arg: $1"
