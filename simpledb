@@ -3,16 +3,14 @@
 # TODO
 #
 # database ops:
-# -r <string>, remove entry if type supports remove (below):
-#	dict, remove by key
 # -gc, get current database name
+# -dt, print dict type token
 #
 # misc:
 # update error logging
 # readme
 
 DPATH="/var/simpledb"
-CPATH="$DPATH/config"
 CURRENT="$DPATH/current"
 ARCHIVE="$DPATH/archive"
 DTOK="<<DTOK>>"
@@ -34,7 +32,7 @@ usage() {
 	echo "    -uar <dname> - unarchive database dname"
 	echo "    -la - list archived databases"
 	echo "    -g <type> <str> - get an entry from the current database (if the database supports the type of get)"
-	echo "    -d <type> <str> - delete an entry from the current database (if the database supports the type of delete)"
+	echo "    -r <type> <str> - delete an entry from the current database (if the database supports the type of delete)"
 	exit 0
 }
 
@@ -265,6 +263,20 @@ get_dict() {
 	done < $CURRENT
 }
 
+remove_dict() {
+	type=$1
+	str=$2
+	path=$(readlink -f $CURRENT)
+	case $type in
+		"key")
+			sed -i "/^$str$DTOK/d" $path
+			;;
+		"rkey")
+			sed -ir "/^.*$str.*$DTOK/d" $path
+			;;
+	esac
+}
+
 #
 ## Main
 #
@@ -395,11 +407,11 @@ do
 			type=$1
 			shift
 			str=$1
-			if [ -z $type ]; then
+			if [ -z "$type" ]; then
 				echo "type not given for get"
 				exit 17
 			fi
-			if [ -z $str ]; then
+			if [ -z "$str" ]; then
 				echo "string not given for get"
 				exit 18
 			fi
@@ -417,6 +429,34 @@ do
 					;;
 			esac
 			;;
+		"-r")
+			shift
+			type=$1
+			shift
+			str=$1
+			if [ -z "$type" ]; then
+				echo "type not given for get"
+				exit 19
+			fi
+			if [ -z "$str" ]; then
+				echo "string not given for get"
+				exit 20
+			fi
+			dname=$(_get_current_name)
+			ctype=$(_get_current_type)
+			case $ctype in
+				"log")
+					echo "log does not support remove"
+					exit 21
+					;;
+				"dict")
+					remove_dict $type "$str"
+					;;
+				*)
+					;;
+			esac
+			;;
+
 		*)
 			echo "unknown arg: $1"
 			;;
