@@ -2,10 +2,6 @@
 
 # TODO
 #
-# database ops:
-# -gc, get current database name
-# -dt, print dict type token
-#
 # misc:
 # update error logging
 # readme
@@ -23,6 +19,7 @@ usage() {
 	echo "                    dict - key value pair database"
 	echo "                    log - raw text as written"
 	echo "    -s <dname> - set the database dname to the current database"
+	echo "    -us - unset the current database"
 	echo "    -d - delete current database"
 	echo "    -p - print raw text of current database"
 	echo "    -a - add entry to current database from stdin"
@@ -33,6 +30,8 @@ usage() {
 	echo "    -la - list archived databases"
 	echo "    -g <type> <str> - get an entry from the current database (if the database supports the type of get)"
 	echo "    -r <type> <str> - delete an entry from the current database (if the database supports the type of delete)"
+	echo "    -gc - get current database name and type"
+	echo "    -dt - print delimeter torken for dict type"
 	exit 0
 }
 
@@ -327,6 +326,13 @@ do
 			fi
 			set_db $dname
 			;;
+		"-us")
+			if [ ! -f $CURRENT ]; then
+				echo "current database not set"
+				exit 7
+			fi
+			unlink $CURRENT
+			;;
 		"-q")
 			suppress_output
 			;;
@@ -336,14 +342,14 @@ do
 		"-p")
 			if [ ! -f "$CURRENT" ]; then
 				echo "database does not exist"
-				exit 7
+				exit 8
 			fi
 			print_db
 			;;
 		"-a")
 			if [ ! -f $CURRENT ]; then
 				echo "database does not exist"
-				exit 8
+				exit 9
 			fi
 			add_entry $dname "_STDIN"
 			;;
@@ -352,11 +358,11 @@ do
 			entry=$1
 			if [ -z "$entry" ]; then
 				echo "could not add empty entry"
-				exit 9
+				exit 10
 			fi
 			if [ ! -f $CURRENT ]; then
 				echo "database does not exist"
-				exit 10
+				exit 11
 			fi
 			add_entry "$entry"
 			;;
@@ -365,11 +371,11 @@ do
 			dirpath=$1
 			if [ ! -d "$dirpath" ]; then
 				echo "copy location does not exist"
-				exit 11
+				exit 12
 			fi
 			if [ ! -f $CURRENT ]; then
 				echo "database does not exist"
-				exit 12
+				exit 13
 			fi
 			copy_db $dirpath
 			;;
@@ -415,6 +421,10 @@ do
 				echo "string not given for get"
 				exit 18
 			fi
+			if [ ! -f $CURRENT ]; then
+				echo "current database not set"
+				exit 30
+			fi
 			dname=$(_get_current_name)
 			ctype=$(_get_current_type)
 			case $ctype in
@@ -442,12 +452,16 @@ do
 				echo "string not given for get"
 				exit 20
 			fi
+			if [ ! -f $CURRENT ]; then
+				echo "current database is not set"
+				exit 21
+			fi
 			dname=$(_get_current_name)
 			ctype=$(_get_current_type)
 			case $ctype in
 				"log")
 					echo "log does not support remove"
-					exit 21
+					exit 22
 					;;
 				"dict")
 					remove_dict $type "$str"
@@ -456,7 +470,19 @@ do
 					;;
 			esac
 			;;
-
+		"-gc") 
+			if  [ -f $CURRENT ]; then
+				dname=$(_get_current_name)
+				ctype=$(_get_current_type)
+				db=$(echo "$dname $ctype" | sed 's/ /./g')
+				echo "$db"
+			else
+				exit 23
+			fi
+			;;
+		"-pt")
+			echo "$DTOK"
+			;;
 		*)
 			echo "unknown arg: $1"
 			;;
