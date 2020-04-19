@@ -2,8 +2,6 @@
 
 # TODO
 #
-# misc:
-# readme
 
 DPATH="/var/simpledb"
 CURRENT="$DPATH/current"
