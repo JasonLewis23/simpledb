@@ -3,7 +3,8 @@ Author: Jason Lewis <jclewis2323@gmail.com>
 
 Description:
 SimpleDB is a bash utility for storage and retrival of data, inlcluding log style storage and dictionary style storage.
-Users may add data through the command line or stdin. Databases can be copied, archived, and un-archived. 
+Users may add data through the command line or stdin. Databases can be copied, archived, and un-archived. Written in bash
+and only intended for use in linux environments that include common linux utilities, such as grep, awk, sed, cat, etc.
 
 	Supported database types
 		- dict - dictionary
@@ -46,7 +47,7 @@ Usage:
 	-g <type> <str> - get an entry from the current database (if the database supports the type of get)"
 	-r <type> <str> - delete an entry from the current database (if the database supports the type of delete)"
 	-gc - get current database name and type"
-	-dt - print delimeter torken for dict type"
+	-pt - print delimeter torken for dict type"
 
 Examples:
 	Create a database
@@ -64,7 +65,7 @@ Examples:
 	Printing
 		simpledb -p
 		simpledb -gc
-		simpledb -dt
+		simpledb -pt
 
 	Add to a database
 		simpledb -a < input.txt

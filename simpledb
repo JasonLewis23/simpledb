@@ -28,7 +28,7 @@ usage() {
 	echo "    -g <type> <str> - get an entry from the current database (if the database supports the type of get)"
 	echo "    -r <type> <str> - delete an entry from the current database (if the database supports the type of delete)"
 	echo "    -gc - get current database name and type"
-	echo "    -dt - print delimeter torken for dict type"
+	echo "    -pt - print delimeter torken for dict type"
 	exit 0
 }
 
@@ -185,10 +185,10 @@ archive_db() {
 	dpath=$(readlink -f $CURRENT)
 	dname=$(basename $dpath)
 	mkdir -p $ARCHIVE
-	mv $dpath $ARCHIVE/$dname
 	if [ -f $CURRENT ]; then
 		unlink $CURRENT
 	fi
+	mv $dpath $ARCHIVE/$dname
 }
 
 uarchive_db() {
