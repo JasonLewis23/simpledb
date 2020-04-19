@@ -30,7 +30,7 @@ and only intended for use in linux environments that include common linux utilit
 Install:
 
 Run the following command (may require sudo permissions)
-	cp simpledb /usr/bin
+	- cp simpledb /usr/bin
 
 Usage:
 
