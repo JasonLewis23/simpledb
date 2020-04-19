@@ -2,6 +2,7 @@ SimpleDB
 Author: Jason Lewis <jclewis2323@gmail.com>
 
 Description:
+
 SimpleDB is a bash utility for storage and retrival of data, inlcluding log style storage and dictionary style storage.
 Users may add data through the command line or stdin. Databases can be copied, archived, and un-archived. Written in bash
 and only intended for use in linux environments that include common linux utilities, such as grep, awk, sed, cat, etc.
@@ -27,10 +28,12 @@ and only intended for use in linux environments that include common linux utilit
 				remove entries that contain the passed in key
 
 Install:
+
 Run the following command (may require sudo permissions)
 	cp simpledb /usr/bin
 
 Usage:
+
 	-h - display help screen"
 	-q - suppress output"
 	-c <type> <dname> - create a new database, dname, with one of the following types, type:"
@@ -50,6 +53,7 @@ Usage:
 	-pt - print delimeter torken for dict type"
 
 Examples:
+
 	Create a database
 		simpledb -c dict mydb.dict
 
